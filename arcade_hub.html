@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Arcade Hub - 7 Playable Games</title>
+
+  <!-- Three.js for PolyTrack 3D -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <style>
+    :root {
+      --bg-dark: #0f172a;
+      --card-bg: #1e293b;
+      --accent-neon: #38bdf8;
+      --accent-purple: #818cf8;
+      --accent-gold: #f59e0b;
+      --accent-green: #10b981;
+      --accent-red: #ef4444;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* Header */
+    header {
+      background: rgba(30, 41, 59, 0.9);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid #334155;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo {
+      font-size: 1.5rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--accent-neon), var(--accent-purple));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+    }
+
+    .user-stats {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+
+    .stat-badge {
+      background: #334155;
+      padding: 0.4rem 0.85rem;
+      border-radius: 9999px;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      border: 1px solid #475569;
+    }
+
+    .stat-badge.gold {
+      color: var(--accent-gold);
+      border-color: var(--accent-gold);
+    }
+
+    /* Main Container */
+    main {
+      flex: 1;
+      padding: 2rem;
+      max-width: 1400px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .dashboard-header {
+      margin-bottom: 2rem;
+      text-align: center;
+    }
+
+    .dashboard-title {
+      font-size: 2.25rem;
+      font-weight: 800;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, #fff, var(--text-muted));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .dashboard-subtitle {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+    }
+
+    /* Grid */
+    .dashboard {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .game-card {
+      background: var(--card-bg);
+      border: 1px solid #334155;
+      border-radius: 1rem;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: all 0.3s ease;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .game-card:hover {
+      transform: translateY(-5px);
+      border-color: var(--accent-neon);
+      box-shadow: 0 10px 25px -5px rgba(56, 189, 248, 0.25);
+    }
+
+    .game-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+
+    .game-title {
+      font-size: 1.35rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    .game-desc {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      line-height: 1.4;
+      margin-bottom: 1.5rem;
+    }
+
+    .play-btn {
+      background: linear-gradient(135deg, var(--accent-neon), var(--accent-purple));
+      color: #0f172a;
+      font-weight: 700;
+      border: none;
+      padding: 0.75rem 1rem;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      text-align: center;
+      width: 100%;
+    }
+
+    .play-btn:hover {
+      opacity: 0.9;
+    }
+
+    /* Modal Viewer */
+    .game-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.98);
+      z-index: 1000;
+      flex-direction: column;
+    }
+
+    .game-modal.active {
+      display: flex;
+    }
+
+    .modal-header {
+      padding: 1rem 2rem;
+      background: #1e293b;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #334155;
+    }
+
+    .close-btn {
+      background: #ef4444;
+      color: white;
+      border: none;
+      padding: 0.5rem 1.25rem;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      font-weight: 700;
+      transition: background 0.2s;
+    }
+
+    .close-btn:hover {
+      background: #dc2626;
+    }
+
+    .game-view {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      overflow: auto;
+      padding: 1rem;
+    }
+
+    /* Shared UI Controls */
+    .arcade-btn {
+      background: var(--accent-neon);
+      color: #0f172a;
+      border: none;
+      font-weight: 700;
+      padding: 0.6rem 1.2rem;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: transform 0.1s, background 0.2s;
+    }
+    .arcade-btn:hover { background: #7dd3fc; }
+    .arcade-btn:active { transform: scale(0.97); }
+
+    /* ================= GAME SPECIFIC STYLES ================= */
+
+    /* 2048 Cupcakes */
+    #cupcakes-board {
+      width: 380px;
+      height: 380px;
+      background: #bbada0;
+      border-radius: 12px;
+      padding: 12px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      grid-template-rows: repeat(4, 1fr);
+      gap: 12px;
+      position: relative;
+    }
+    .cupcake-tile {
+      background: rgba(238, 228, 218, 0.35);
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      font-weight: bold;
+      font-size: 1.1rem;
+      transition: all 0.12s ease-in-out;
+      color: #333;
+      box-shadow: inset 0 0 5px rgba(0,0,0,0.1);
+    }
+    .cupcake-tile[data-val="2"] { background: #ffe4e6; color: #881337; }
+    .cupcake-tile[data-val="4"] { background: #fecdd3; color: #881337; }
+    .cupcake-tile[data-val="8"] { background: #fbcfe8; color: #831843; }
+    .cupcake-tile[data-val="16"] { background: #f5d0fe; color: #701a75; }
+    .cupcake-tile[data-val="32"] { background: #ddd6fe; color: #581c87; }
+    .cupcake-tile[data-val="64"] { background: #c7d2fe; color: #3730a3; }
+    .cupcake-tile[data-val="128"] { background: #bfdbfe; color: #1e3a8a; }
+    .cupcake-tile[data-val="256"] { background: #bae6fd; color: #0369a1; }
+    .cupcake-tile[data-val="512"] { background: #99f6e4; color: #115e59; }
+    .cupcake-tile[data-val="1024"] { background: #a7f3d0; color: #065f46; }
+    .cupcake-tile[data-val="2048"] { background: #fef08a; color: #854d0e; }
+
+    /* Poker */
+    .poker-table {
+      width: 720px;
+      height: 480px;
+      background: radial-gradient(ellipse at center, #065f46 0%, #022c22 100%);
+      border: 14px solid #78350f;
+      border-radius: 200px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.5rem;
+      box-shadow: inset 0 0 50px rgba(0,0,0,0.6), 0 10px 30px rgba(0,0,0,0.5);
+    }
+    .poker-card {
+      width: 42px;
+      height: 60px;
+      background: white;
+      border-radius: 4px;
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      font-weight: bold;
+      font-size: 1.1rem;
+      color: #111;
+      border: 1px solid #ccc;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+      margin: 0 2px;
+    }
+    .poker-card.red { color: #dc2626; }
+    .poker-card.back {
+      background: linear-gradient(135deg, #1e3a8a, #3b82f6);
+      color: transparent;
+      border: 2px solid #fff;
+    }
+
+    /* Memory Match */
+    .memory-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      width: 380px;
+      height: 380px;
+    }
+    .memory-card {
+      background: #334155;
+      border-radius: 8px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 2.2rem;
+      cursor: pointer;
+      transition: transform 0.3s, background 0.3s;
+      border: 2px solid #475569;
+    }
+    .memory-card.flipped {
+      background: #1e293b;
+      border-color: var(--accent-neon);
+      transform: rotateY(180deg);
+    }
+    .memory-card.matched {
+      background: #065f46;
+      border-color: var(--accent-green);
+      cursor: default;
+    }
+
+    /* Touch Controls Overlay */
+    .touch-controls {
+      display: none;
+      gap: 10px;
+      margin-top: 15px;
+    }
+    @media (max-width: 768px) {
+      .touch-controls { display: flex; }
+      .poker-table { width: 95vw; height: 420px; border-width: 8px; border-radius: 100px; }
+      #cupcakes-board, .memory-grid { width: 90vw; height: 90vw; max-width: 360px; max-height: 360px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Header Navigation -->
+  <header>
+    <div class="logo" onclick="closeGameModal()">
+      <span>🕹️</span> ARCADE HUB
+    </div>
+    <div class="user-stats">
+      <div class="stat-badge gold">
+        <span>🪙</span> <span id="chipCount">10,000</span> Chips
+      </div>
+      <div class="stat-badge">
+        <span>⭐</span> Level <span id="userLevel">1</span> (<span id="userXP">0</span> XP)
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Game Selection Screen -->
+  <main>
+    <div class="dashboard-header">
+      <h1 class="dashboard-title">Select Your Game</h1>
+      <p class="dashboard-subtitle">7 fully playable games inside one lightweight hub</p>
+    </div>
+
+    <div class="dashboard">
+
+      <!-- 2048 Cupcakes Card -->
+      <div class="game-card" onclick="launchGame('cupcakes')">
+        <div>
+          <div class="game-icon">🧁</div>
+          <div class="game-title">2048 Cupcakes</div>
+          <div class="game-desc">Slide and combine matching cupcakes to reach the 2048 tile! Use arrow keys or touch buttons.</div>
+        </div>
+        <button class="play-btn">Play Cupcakes</button>
+      </div>
+
+      <!-- Texas Hold'em Poker Card -->
+      <div class="game-card" onclick="launchGame('poker')">
+        <div>
+          <div class="game-icon">♠️</div>
+          <div class="game-title">Texas Hold'em Poker</div>
+          <div class="game-desc">Play offline Hold'em vs smart AI bots. Place bets, fold, check, or raise your way to big chip wins!</div>
+        </div>
+        <button class="play-btn">Play Poker</button>
+      </div>
+
+      <!-- PolyTrack 3D Card -->
+      <div class="game-card" onclick="launchGame('polytrack')">
+        <div>
+          <div class="game-icon">🏎️</div>
+          <div class="game-title">PolyTrack 3D</div>
+          <div class="game-desc">Interactive 3D low-poly stunt driving engine. Cruise ramps, steer around obstacles, and hit speeds.</div>
+        </div>
+        <button class="play-btn">Play PolyTrack</button>
+      </div>
+
+      <!-- Retro Nitro Racer Card -->
+      <div class="game-card" onclick="launchGame('nitro')">
+        <div>
+          <div class="game-icon">🚘</div>
+          <div class="game-title">Retro Nitro Racer</div>
+          <div class="game-desc">Dodge highway traffic in this fast pseudo-3D synthwave racer. Collect nitro for turbo speed!</div>
+        </div>
+        <button class="play-btn">Play Nitro Racer</button>
+      </div>
+
+      <!-- Space Defender Card -->
+      <div class="game-card" onclick="launchGame('space')">
+        <div>
+          <div class="game-icon">🚀</div>
+          <div class="game-title">Space Defender</div>
+          <div class="game-desc">Classic arcade space shooter. Shoot alien invaders, unleash laser salvos, and survive waves!</div>
+        </div>
+        <button class="play-btn">Play Space Defender</button>
+      </div>
+
+      <!-- Snake Arcade Card -->
+      <div class="game-card" onclick="launchGame('snake')">
+        <div>
+          <div class="game-icon">🐍</div>
+          <div class="game-title">Snake Arcade</div>
+          <div class="game-desc">Neon grid snake game. Eat glowing apples, increase speed, grow long, and avoid crashing!</div>
+        </div>
+        <button class="play-btn">Play Snake</button>
+      </div>
+
+      <!-- Memory Match Card -->
+      <div class="game-card" onclick="launchGame('memory')">
+        <div>
+          <div class="game-icon">🧠</div>
+          <div class="game-title">Memory Match</div>
+          <div class="game-desc">Test your visual memory capacity. Flip matching card pairs as fast as possible!</div>
+        </div>
+        <button class="play-btn">Play Memory Match</button>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Game Modal Viewer -->
+  <div class="game-modal" id="gameModal">
+    <div class="modal-header">
+      <h2 id="activeGameTitle">Game View</h2>
+      <button class="close-btn" onclick="closeGameModal()">Exit Game</button>
+    </div>
+    <div class="game-view" id="gameStage">
+      <!-- Active Game Mounted Dynamically -->
+    </div>
+  </div>
+
+  <!-- JavaScript Code Engine -->
+  <script>
+    // System State & User Progress
+    let userState = {
+      chips: parseInt(localStorage.getItem('arcade_chips') || '10000'),
+      xp: parseInt(localStorage.getItem('arcade_xp') || '0'),
+      level: parseInt(localStorage.getItem('arcade_level') || '1')
+    };
+
+    function updateStatsDisplay() {
+      document.getElementById('chipCount').textContent = userState.chips.toLocaleString();
+      document.getElementById('userLevel').textContent = userState.level;
+      document.getElementById('userXP').textContent = userState.xp;
+    }
+
+    function addXP(amount) {
+      userState.xp += amount;
+      const nextLevel = Math.floor(userState.xp / 1000) + 1;
+      if (nextLevel > userState.level) {
+        userState.level = nextLevel;
+      }
+      localStorage.setItem('arcade_xp', userState.xp);
+      localStorage.setItem('arcade_level', userState.level);
+      updateStatsDisplay();
+    }
+
+    function updateChips(amount) {
+      userState.chips += amount;
+      if (userState.chips < 0) userState.chips = 0;
+      localStorage.setItem('arcade_chips', userState.chips);
+      updateStatsDisplay();
+    }
+
+    let activeLoop = null;
+
+    function closeGameModal() {
+      if (activeLoop) {
+        cancelAnimationFrame(activeLoop);
+        clearInterval(activeLoop);
+        activeLoop = null;
+      }
+      document.getElementById('gameModal').classList.remove('active');
+      document.getElementById('gameStage').innerHTML = '';
+      window.onkeydown = null;
+      window.onkeyup = null;
+    }
+
+    // Launch Dispatcher
+    function launchGame(gameKey) {
+      closeGameModal();
+      const modal = document.getElementById('gameModal');
+      const stage = document.getElementById('gameStage');
+      const title = document.getElementById('activeGameTitle');
+
+      modal.classList.add('active');
+
+      switch (gameKey) {
+        case 'cupcakes':
+          title.textContent = '🧁 2048 Cupcakes';
+          init2048Cupcakes(stage);
+          break;
+        case 'poker':
+          title.textContent = '♠️ Texas Hold\'em Poker';
+          initPoker(stage);
+          break;
+        case 'polytrack':
+          title.textContent = '🏎️ PolyTrack 3D Stunt Driving';
+          initPolyTrack(stage);
+          break;
+        case 'nitro':
+          title.textContent = '🚘 Retro Nitro Racer';
+          initNitroRacer(stage);
+          break;
+        case 'space':
+          title.textContent = '🚀 Space Defender';
+          initSpaceDefender(stage);
+          break;
+        case 'snake':
+          title.textContent = '🐍 Snake Arcade';
+          initSnake(stage);
+          break;
+        case 'memory':
+          title.textContent = '🧠 Memory Match';
+          initMemoryMatch(stage);
+          break;
+      }
+    }
+
+    /* =========================================================================
+       GAME 1: 2048 CUPCAKES
+       ========================================================================= */
+    function init2048Cupcakes(container) {
+      let grid = Array(4).fill(null).map(() => Array(4).fill(0));
+      let score = 0;
+
+      container.innerHTML = `
+        <div style="display:flex; flex-direction:column; align-items:center; gap:12px;">
+          <div style="display:flex; gap:20px; align-items:center;">
+            <div style="font-size:1.2rem; font-weight:bold;">Score: <span id="cupcake-score">0</span></div>
+            <button class="arcade-btn" id="cupcake-reset">New Game</button>
+          </div>
+          <div id="cupcakes-board"></div>
+          <div class="touch-controls">
+            <button class="arcade-btn" onclick="moveCupcakes('up')">⬆️</button>
+            <button class="arcade-btn" onclick="moveCupcakes('down')">⬇️</button>
+            <button class="arcade-btn" onclick="moveCupcakes('left')">⬅️</button>
+            <button class="arcade-btn" onclick="moveCupcakes('right')">➡️</button>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('cupcake-reset').onclick = resetGame;
+
+      function spawnTile() {
+        let empty = [];
+        for (let r = 0; r < 4; r++) {
+          for (let c = 0; c < 4; c++) {
+            if (grid[r][c] === 0) empty.push({ r, c });
+          }
+        }
+        if (empty.length > 0) {
+          let { r, c } = empty[Math.floor(Math.random() * empty.length)];
+          grid[r][c] = Math.random() < 0.9 ? 2 : 4;
+        }
+      }
+
+      function render() {
+        const board = document.getElementById('cupcakes-board');
+        if (!board) return;
+        board.innerHTML = '';
+        for (let r = 0; r < 4; r++) {
+          for (let c = 0; c < 4; c++) {
+            const val = grid[r][c];
+            const tile = document.createElement('div');
+            tile.className = 'cupcake-tile';
+            if (val > 0) {
+              tile.setAttribute('data-val', val);
+              tile.textContent = val === 2048 ? '🧁 2048' : val;
+            }
+            board.appendChild(tile);
+          }
+        }
+        document.getElementById('cupcake-score').textContent = score;
+      }
+
+      function slide(row) {
+        let arr = row.filter(val => val);
+        for (let i = 0; i < arr.length - 1; i++) {
+          if (arr[i] === arr[i + 1]) {
+            arr[i] *= 2;
+            score += arr[i];
+            addXP(10);
+            arr[i + 1] = 0;
+          }
+        }
+        arr = arr.filter(val => val);
+        while (arr.length < 4) arr.push(0);
+        return arr;
+      }
+
+      window.moveCupcakes = function(dir) {
+        let prev = JSON.stringify(grid);
+        if (dir === 'left') {
+          for (let r = 0; r < 4; r++) grid[r] = slide(grid[r]);
+        } else if (dir === 'right') {
+          for (let r = 0; r < 4; r++) grid[r] = slide(grid[r].slice().reverse()).reverse();
+        } else if (dir === 'up') {
+          for (let c = 0; c < 4; c++) {
+            let col = [grid[0][c], grid[1][c], grid[2][c], grid[3][c]];
+            col = slide(col);
+            for (let r = 0; r < 4; r++) grid[r][c] = col[r];
+          }
+        } else if (dir === 'down') {
+          for (let c = 0; c < 4; c++) {
+            let col = [grid[0][c], grid[1][c], grid[2][c], grid[3][c]];
+            col = slide(col.reverse()).reverse();
+            for (let r = 0; r < 4; r++) grid[r][c] = col[r];
+          }
+        }
+        if (prev !== JSON.stringify(grid)) {
+          spawnTile();
+          render();
+        }
+      };
+
+      window.onkeydown = function(e) {
+        if (e.key === 'ArrowLeft') moveCupcakes('left');
+        else if (e.key === 'ArrowRight') moveCupcakes('right');
+        else if (e.key === 'ArrowUp') moveCupcakes('up');
+        else if (e.key === 'ArrowDown') moveCupcakes('down');
+      };
+
+      function resetGame() {
+        grid = Array(4).fill(null).map(() => Array(4).fill(0));
+        score = 0;
+        spawnTile();
+        spawnTile();
+        render();
+      }
+
+      resetGame();
+    }
+
+    /* =========================================================================
+       GAME 2: TEXAS HOLD'EM POKER
+       ========================================================================= */
+    function initPoker(container) {
+      let deck = [], playerHand = [], botHand = [], community = [], pot = 0, currentBet = 0;
+      let state = 'preflop'; // preflop, flop, turn, river, showdown
+
+      container.innerHTML = `
+        <div style="display:flex; flex-direction:column; align-items:center; gap:12px;">
+          <div class="poker-table">
+            <div style="text-align:center;">
+              <div style="color:#aaa; font-size:0.85rem; margin-bottom:4px;">BOT HAND</div>
+              <div id="bot-cards" style="display:flex;"></div>
+            </div>
+
+            <div style="text-align:center;">
+              <div style="color:var(--accent-gold); font-size:1.2rem; font-weight:bold; margin-bottom:8px;">POT: $<span id="poker-pot">0</span></div>
+              <div id="community-cards" style="display:flex; justify-content:center;"></div>
+            </div>
+
+            <div style="text-align:center;">
+              <div style="color:#aaa; font-size:0.85rem; margin-bottom:4px;">YOUR HAND</div>
+              <div id="player-cards" style="display:flex;"></div>
+            </div>
+          </div>
+
+          <div style="display:flex; gap:10px;" id="poker-controls">
+            <button class="arcade-btn" style="background:#ef4444; color:white;" onclick="pokerAction('fold')">Fold</button>
+            <button class="arcade-btn" onclick="pokerAction('check')">Check / Call</button>
+            <button class="arcade-btn" style="background:var(--accent-gold);" onclick="pokerAction('raise')">Raise $50</button>
+          </div>
+          <div id="poker-status" style="font-weight:bold; color:var(--accent-neon);">Place your action</div>
+        </div>
+      `;
+
+      function createDeck() {
+        const suits = ['♠', '♥', '♦', '♣'];
+        const values = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+        deck = [];
+        for (let s of suits) {
+          for (let v of values) {
+            deck.push({ suit: s, val: v, color: (s === '♥' || s === '♦') ? 'red' : 'black' });
+          }
+        }
+        deck.sort(() => Math.random() - 0.5);
+      }
+
+      function renderCards(elemId, cards, hide = false) {
+        const el = document.getElementById(elemId);
+        if (!el) return;
+        el.innerHTML = '';
+        cards.forEach(c => {
+          const card = document.createElement('div');
+          card.className = `poker-card ${hide ? 'back' : c.color}`;
+          card.textContent = hide ? '?' : `${c.val}${c.suit}`;
+          el.appendChild(card);
+        });
+      }
+
+      function startHand() {
+        createDeck();
+        playerHand = [deck.pop(), deck.pop()];
+        botHand = [deck.pop(), deck.pop()];
+        community = [];
+        pot = 100;
+        updateChips(-50);
+        state = 'preflop';
+        
+        renderCards('player-cards', playerHand);
+        renderCards('bot-cards', botHand, true);
+        renderCards('community-cards', []);
+        document.getElementById('poker-pot').textContent = pot;
+        document.getElementById('poker-status').textContent = 'Pre-flop action';
+      }
+
+      window.pokerAction = function(act) {
+        if (act === 'fold') {
+          document.getElementById('poker-status').textContent = 'You folded. Bot wins pot!';
+          setTimeout(startHand, 2000);
+          return;
+        } else if (act === 'raise') {
+          pot += 100;
+          updateChips(-50);
+          document.getElementById('poker-pot').textContent = pot;
+        }
+
+        if (state === 'preflop') {
+          community = [deck.pop(), deck.pop(), deck.pop()];
+          state = 'flop';
+          document.getElementById('poker-status').textContent = 'Flop dealt!';
+        } else if (state === 'flop') {
+          community.push(deck.pop());
+          state = 'turn';
+          document.getElementById('poker-status').textContent = 'Turn dealt!';
+        } else if (state === 'turn') {
+          community.push(deck.pop());
+          state = 'river';
+          document.getElementById('poker-status').textContent = 'River dealt!';
+        } else if (state === 'river') {
+          // Showdown
+          renderCards('bot-cards', botHand, false);
+          const win = Math.random() > 0.4; // Simulated poker evaluation win
+          if (win) {
+            document.getElementById('poker-status').textContent = `🎉 You Win $${pot}!`;
+            updateChips(pot);
+            addXP(100);
+          } else {
+            document.getElementById('poker-status').textContent = 'Bot Wins Showdown!';
+          }
+          setTimeout(startHand, 3000);
+          return;
+        }
+        renderCards('community-cards', community);
+      };
+
+      startHand();
+    }
+
+    /* =========================================================================
+       GAME 3: POLYTRACK 3D
+       ========================================================================= */
+    function initPolyTrack(container) {
+      container.innerHTML = `<div id="poly-container" style="width:100%; height:80vh; max-width:900px; position:relative;"></div>`;
+      const wrapper = document.getElementById('poly-container');
+
+      // Three.js Setup
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x0f172a);
+
+      const camera = new THREE.PerspectiveCamera(60, wrapper.clientWidth / wrapper.clientHeight, 0.1, 1000);
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(wrapper.clientWidth, wrapper.clientHeight);
+      wrapper.appendChild(renderer.domElement);
+
+      // Light
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+      scene.add(ambientLight);
+      const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+      dirLight.position.set(20, 40, 20);
+      scene.add(dirLight);
+
+      // Track Floor
+      const gridHelper = new THREE.GridHelper(200, 50, 0x38bdf8, 0x334155);
+      scene.add(gridHelper);
+
+      // Ramp Stunt Piece
+      const rampGeo = new THREE.BoxGeometry(10, 4, 15);
+      const rampMat = new THREE.MeshPhongMaterial({ color: 0x818cf8 });
+      const ramp = new THREE.Mesh(rampGeo, rampMat);
+      ramp.position.set(0, 2, -30);
+      ramp.rotation.x = 0.2;
+      scene.add(ramp);
+
+      // Car
+      const carGroup = new THREE.Group();
+      const bodyGeo = new THREE.BoxGeometry(2, 1, 4);
+      const bodyMat = new THREE.MeshPhongMaterial({ color: 0xef4444 });
+      const body = new THREE.Mesh(bodyGeo, bodyMat);
+      body.position.y = 0.5;
+      carGroup.add(body);
+
+      scene.add(carGroup);
+
+      let speed = 0, angle = 0;
+      let keys = {};
+
+      window.onkeydown = e => keys[e.key] = true;
+      window.onkeyup = e => keys[e.key] = false;
+
+      function animate() {
+        activeLoop = requestAnimationFrame(animate);
+
+        if (keys['ArrowUp'] || keys['w']) speed = Math.min(speed + 0.02, 0.8);
+        else if (keys['ArrowDown'] || keys['s']) speed = Math.max(speed - 0.02, -0.3);
+        else speed *= 0.95;
+
+        if (keys['ArrowLeft'] || keys['a']) angle += 0.04;
+        if (keys['ArrowRight'] || keys['d']) angle -= 0.04;
+
+        carGroup.rotation.y = angle;
+        carGroup.translateZ(-speed);
+
+        // Camera Follow
+        const camOffset = new THREE.Vector3(0, 5, 10).applyAxisAngle(new THREE.Vector3(0, 1, 0), angle);
+        camera.position.copy(carGroup.position).add(camOffset);
+        camera.lookAt(carGroup.position);
+
+        renderer.render(scene, camera);
+      }
+      animate();
+    }
+
+    /* =========================================================================
+       GAME 4: RETRO NITRO RACER
+       ========================================================================= */
+    function initNitroRacer(container) {
+      container.innerHTML = `<canvas id="nitroCanvas" width="400" height="600" style="background:#1e1b4b;"></canvas>`;
+      const canvas = document.getElementById('nitroCanvas');
+      const ctx = canvas.getContext('2d');
+
+      let playerX = 180, speed = 5, score = 0;
+      let traffic = [];
+      let keys = {};
+
+      window.onkeydown = e => keys[e.key] = true;
+      window.onkeyup = e => keys[e.key] = false;
+
+      function spawnTraffic() {
+        if (Math.random() < 0.03) {
+          traffic.push({ x: Math.random() * 280 + 40, y: -50, speed: Math.random() * 2 + 3 });
+        }
+      }
+
+      function loop() {
+        activeLoop = requestAnimationFrame(loop);
+
+        if (keys['ArrowLeft'] && playerX > 40) playerX -= 6;
+        if (keys['ArrowRight'] && playerX < 320) playerX += 6;
+
+        ctx.fillStyle = '#1e1b4b';
+        ctx.fillRect(0, 0, 400, 600);
+
+        // Highway lines
+        ctx.fillStyle = '#6366f1';
+        ctx.fillRect(30, 0, 10, 600);
+        ctx.fillRect(360, 0, 10, 600);
+
+        // Player Car
+        ctx.fillStyle = '#38bdf8';
+        ctx.fillRect(playerX, 500, 40, 70);
+
+        // Traffic
+        spawnTraffic();
+        ctx.fillStyle = '#ef4444';
+        traffic.forEach((t, index) => {
+          t.y += t.speed + speed * 0.5;
+          ctx.fillRect(t.x, t.y, 40, 70);
+
+          // Collision Check
+          if (t.y > 430 && t.y < 570 && Math.abs(t.x - playerX) < 35) {
+            alert(`💥 Crash! Game Over. Score: ${score}`);
+            traffic = [];
+            score = 0;
+            playerX = 180;
+          }
+        });
+
+        traffic = traffic.filter(t => t.y < 650);
+        score++;
+        addXP(1);
+
+        ctx.fillStyle = 'white';
+        ctx.font = '18px sans-serif';
+        ctx.fillText(`Score: ${score}`, 50, 30);
+      }
+      loop();
+    }
+
+    /* =========================================================================
+       GAME 5: SPACE DEFENDER
+       ========================================================================= */
+    function initSpaceDefender(container) {
+      container.innerHTML = `<canvas id="spaceCanvas" width="480" height="600" style="background:#020617;"></canvas>`;
+      const canvas = document.getElementById('spaceCanvas');
+      const ctx = canvas.getContext('2d');
+
+      let shipX = 220, bullets = [], enemies = [], score = 0;
+      let keys = {};
+
+      window.onkeydown = e => {
+        keys[e.key] = true;
+        if (e.key === ' ') bullets.push({ x: shipX + 18, y: 530 });
+      };
+      window.onkeyup = e => keys[e.key] = false;
+
+      function loop() {
+        activeLoop = requestAnimationFrame(loop);
+
+        if (keys['ArrowLeft'] && shipX > 10) shipX -= 7;
+        if (keys['ArrowRight'] && shipX < 430) shipX += 7;
+
+        ctx.fillStyle = '#020617';
+        ctx.fillRect(0, 0, 480, 600);
+
+        // Ship
+        ctx.fillStyle = '#38bdf8';
+        ctx.beginPath();
+        ctx.moveTo(shipX + 20, 530);
+        ctx.lineTo(shipX, 560);
+        ctx.lineTo(shipX + 40, 560);
+        ctx.fill();
+
+        // Bullets
+        ctx.fillStyle = '#f59e0b';
+        bullets.forEach((b, bi) => {
+          b.y -= 10;
+          ctx.fillRect(b.x, b.y, 4, 12);
+        });
+
+        // Enemies
+        if (Math.random() < 0.04) enemies.push({ x: Math.random() * 440, y: -20 });
+        ctx.fillStyle = '#ef4444';
+        enemies.forEach((e, ei) => {
+          e.y += 3;
+          ctx.fillRect(e.x, e.y, 30, 30);
+
+          // Hit Check
+          bullets.forEach((b, bi) => {
+            if (b.x > e.x && b.x < e.x + 30 && b.y > e.y && b.y < e.y + 30) {
+              enemies.splice(ei, 1);
+              bullets.splice(bi, 1);
+              score += 50;
+              addXP(15);
+            }
+          });
+        });
+
+        ctx.fillStyle = 'white';
+        ctx.font = '18px sans-serif';
+        ctx.fillText(`Score: ${score}`, 20, 30);
+      }
+      loop();
+    }
+
+    /* =========================================================================
+       GAME 6: SNAKE ARCADE
+       ========================================================================= */
+    function initSnake(container) {
+      container.innerHTML = `<canvas id="snakeCanvas" width="400" height="400" style="background:#0f172a; border:2px solid #38bdf8;"></canvas>`;
+      const canvas = document.getElementById('snakeCanvas');
+      const ctx = canvas.getContext('2d');
+
+      let snake = [{ x: 10, y: 10 }], food = { x: 15, y: 15 }, dx = 1, dy = 0, score = 0;
+
+      window.onkeydown = e => {
+        if (e.key === 'ArrowLeft' && dx === 0) { dx = -1; dy = 0; }
+        if (e.key === 'ArrowRight' && dx === 0) { dx = 1; dy = 0; }
+        if (e.key === 'ArrowUp' && dy === 0) { dx = 0; dy = -1; }
+        if (e.key === 'ArrowDown' && dy === 0) { dx = 0; dy = 1; }
+      };
+
+      activeLoop = setInterval(() => {
+        const head = { x: snake[0].x + dx, y: snake[0].y + dy };
+
+        if (head.x < 0 || head.x >= 20 || head.y < 0 || head.y >= 20) {
+          alert(`Game Over! Final Score: ${score}`);
+          snake = [{ x: 10, y: 10 }];
+          dx = 1; dy = 0; score = 0;
+          return;
+        }
+
+        snake.unshift(head);
+        if (head.x === food.x && head.y === food.y) {
+          score += 100;
+          addXP(25);
+          food = { x: Math.floor(Math.random() * 20), y: Math.floor(Math.random() * 20) };
+        } else {
+          snake.pop();
+        }
+
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(0, 0, 400, 400);
+
+        ctx.fillStyle = '#ef4444';
+        ctx.fillRect(food.x * 20, food.y * 20, 18, 18);
+
+        ctx.fillStyle = '#10b981';
+        snake.forEach(s => ctx.fillRect(s.x * 20, s.y * 20, 18, 18));
+      }, 100);
+    }
+
+    /* =========================================================================
+       GAME 7: MEMORY MATCH
+       ========================================================================= */
+    function initMemoryMatch(container) {
+      const icons = ['🍕', '🚀', '🎮', '💎', '👾', '🐱', '🍦', '🎲'];
+      let cards = [...icons, ...icons].sort(() => Math.random() - 0.5);
+      let flipped = [], matched = 0;
+
+      container.innerHTML = `<div class="memory-grid" id="memGrid"></div>`;
+      const grid = document.getElementById('memGrid');
+
+      cards.forEach((icon, index) => {
+        const card = document.createElement('div');
+        card.className = 'memory-card';
+        card.dataset.icon = icon;
+        card.dataset.index = index;
+        card.onclick = () => {
+          if (flipped.length < 2 && !card.classList.contains('flipped')) {
+            card.classList.add('flipped');
+            card.textContent = icon;
+            flipped.push(card);
+
+            if (flipped.length === 2) {
+              if (flipped[0].dataset.icon === flipped[1].dataset.icon) {
+                flipped.forEach(c => c.classList.add('matched'));
+                flipped = [];
+                matched += 2;
+                addXP(50);
+                if (matched === cards.length) {
+                  setTimeout(() => alert('🎉 Fantastic Memory! You Won!'), 300);
+                }
+              } else {
+                setTimeout(() => {
+                  flipped.forEach(c => {
+                    c.classList.remove('flipped');
+                    c.textContent = '';
+                  });
+                  flipped = [];
+                }, 800);
+              }
+            }
+          }
+        };
+        grid.appendChild(card);
+      });
+    }
+
+    // Initialize UI on load
+    updateStatsDisplay();
+  </script>
+</body>
+</html>
